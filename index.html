@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中1英単語 タイピング練習 (完全網羅版)</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --bg-color: #f4f7f9;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --correct-color: #4caf50;
+            --error-color: #f44336;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 1.5rem;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .word-display {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            min-height: 4.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            letter-spacing: 2px;
+        }
+
+        .meaning-display {
+            font-size: 1.5rem;
+            color: #666;
+            margin-bottom: 1.5rem;
+            min-height: 2rem;
+            height: 2rem;
+        }
+
+        .input-area {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        input[type="text"], select {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 1.2rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.3s;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        select {
+            margin-bottom: 1.5rem;
+            cursor: pointer;
+        }
+
+        input[type="text"]:focus, select:focus {
+            border-color: var(--primary-color);
+        }
+
+        .input-area.correct input {
+            border-color: var(--correct-color);
+            background-color: #e8f5e9;
+        }
+
+        .input-area.error input {
+            border-color: var(--error-color);
+            background-color: #ffebee;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-start {
+            background-color: var(--primary-color);
+            color: white;
+            width: 100%;
+            font-size: 1.2rem;
+            padding: 12px;
+        }
+
+        .btn-reset {
+            background-color: #999;
+            color: white;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .settings-label {
+            display: block;
+            text-align: left;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .animate-pop {
+            animation: pop 0.3s ease-out;
+        }
+    </style>
+
+    <!-- PWA Settings -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js');
+        }
+    </script>
+</head>
+<body>
+
+<div class="container">
+    <h1>JHS 1 English Typing</h1>
+    
+    <div id="game-ui" class="hidden">
+        <div class="stats">
+            <span>正解: <span id="score">0</span></span>
+            <span>残り: <span id="remaining">0</span></span>
+        </div>
+
+        <div id="word-display" class="word-display">---</div>
+        <div id="meaning-display" class="meaning-display"></div>
+
+        <div class="input-area" id="input-container">
+            <input type="text" id="word-input" placeholder="タイプしてね!" autocomplete="off">
+        </div>
+
+        <div class="controls">
+            <button class="btn-reset" onclick="resetGame()">やめる</button>
+        </div>
+    </div>
+
+    <div id="start-ui">
+        <p>中1英単語タイピング練習</p>
+        <p style="font-size: 0.9rem; color: #666; margin-bottom: 1.5rem;">
+            単語が表示されたらスペルをタイピングしてください。<br>正解すると意味が表示されます。
+        </p>
+        
+        <div>
+            <label class="settings-label" for="question-count">出題数を選んでください：</label>
+            <select id="question-count">
+                <option value="10">10問 (サクッと練習)</option>
+                <option value="30">30問 (しっかり練習)</option>
+                <option value="50">50問 (がっつり練習)</option>
+                <option value="100">100問 (テスト前対策)</option>
+                <option value="all">全問 (限界に挑戦！)</option>
+            </select>
+        </div>
+
+        <button class="btn-start" onclick="startGame()">スタート</button>
+        <p style="font-size: 0.8rem; color: #999; margin-top: 1rem;">収録単語数: <span id="total-words-count">0</span>語 (中1網羅版)</p>
+    </div>
+</div>
+
+<script>
+    // 中1英単語 約650語
+    const wordList = [
+        // 代名詞
+        { word: "I", meaning: "私" }, { word: "my", meaning: "私の" }, { word: "me", meaning: "私を/に" }, { word: "mine", meaning: "私のもの" },
+        { word: "you", meaning: "あなた(たち)" }, { word: "your", meaning: "あなた(たち)の" }, { word: "yours", meaning: "あなた(たち)のもの" },
+        { word: "he", meaning: "彼" }, { word: "his", meaning: "彼の/彼のもの" }, { word: "him", meaning: "彼を/に" },
+        { word: "she", meaning: "彼女" }, { word: "her", meaning: "彼女の/彼女を/彼女に" }, { word: "hers", meaning: "彼女のもの" },
+        { word: "it", meaning: "それ" }, { word: "its", meaning: "それの" },
+        { word: "we", meaning: "私たち" }, { word: "our", meaning: "私たちの" }, { word: "us", meaning: "私たちを/に" }, { word: "ours", meaning: "私たちのもの" },
+        { word: "they", meaning: "彼ら/それら" }, { word: "their", meaning: "彼らの/それらの" }, { word: "them", meaning: "彼らを/それらを" }, { word: "theirs", meaning: "彼らのもの" },
+        { word: "this", meaning: "これ/この" }, { word: "that", meaning: "あれ/あの" }, { word: "these", meaning: "これら/これらの" }, { word: "those", meaning: "あれら/あれらの" },
+        
+        // be動詞・助動詞
+        { word: "am", meaning: "〜です/いる(I用)" }, { word: "is", meaning: "〜です/いる(単数用)" }, { word: "are", meaning: "〜です/いる(複数・you用)" },
+        { word: "was", meaning: "〜だった/いた(単数)" }, { word: "were", meaning: "〜だった/いた(複数)" }, { word: "be", meaning: "〜になる/ある" },
+        { word: "do", meaning: "する" }, { word: "does", meaning: "する(3人称単数)" }, { word: "did", meaning: "した(過去形)" },
+        { word: "can", meaning: "〜できる" }, { word: "cannot", meaning: "〜できない" }, { word: "will", meaning: "〜するつもりだ" },
+
+        // 疑問詞
+        { word: "what", meaning: "何/何の" }, { word: "who", meaning: "誰" }, { word: "whose", meaning: "誰の/誰のもの" },
+        { word: "where", meaning: "どこ" }, { word: "when", meaning: "いつ" }, { word: "why", meaning: "なぜ" },
+        { word: "which", meaning: "どちら/どの" }, { word: "how", meaning: "どうやって/どれくらい" },
+
+        // 一般動詞
+        { word: "play", meaning: "遊ぶ/スポーツをする/演奏する" }, { word: "like", meaning: "好む" }, { word: "study", meaning: "勉強する" },
+        { word: "read", meaning: "読む" }, { word: "write", meaning: "書く" }, { word: "speak", meaning: "話す" },
+        { word: "listen", meaning: "聴く" }, { word: "watch", meaning: "見る(動くものを)" }, { word: "look", meaning: "見る(視線を向ける)" },
+        { word: "see", meaning: "見える/会う" }, { word: "eat", meaning: "食べる" }, { word: "drink", meaning: "飲む" },
+        { word: "cook", meaning: "料理する" }, { word: "wash", meaning: "洗う" }, { word: "clean", meaning: "掃除する/きれいな" },
+        { word: "make", meaning: "作る" }, { word: "use", meaning: "使う" }, { word: "have", meaning: "持っている/食べる" },
+        { word: "take", meaning: "取る/乗る/連れていく" }, { word: "get", meaning: "得る/着く" }, { word: "go", meaning: "行く" },
+        { word: "come", meaning: "来る" }, { word: "walk", meaning: "歩く" }, { word: "run", meaning: "走る" },
+        { word: "swim", meaning: "泳ぐ" }, { word: "sing", meaning: "歌う" }, { word: "dance", meaning: "踊る" },
+        { word: "help", meaning: "助ける/手伝う" }, { word: "work", meaning: "働く/勉強する" }, { word: "sleep", meaning: "眠る" },
+        { word: "know", meaning: "知っている" }, { word: "think", meaning: "考える/思う" }, { word: "want", meaning: "欲しい/〜したい" },
+        { word: "need", meaning: "必要とする" }, { word: "buy", meaning: "買う" }, { word: "sell", meaning: "売る" },
+        { word: "stand", meaning: "立つ" }, { word: "sit", meaning: "座る" }, { word: "start", meaning: "始める/始まる" },
+        { word: "finish", meaning: "終える/終わる" }, { word: "open", meaning: "開ける/開く" }, { word: "close", meaning: "閉める/閉まる" },
+        { word: "talk", meaning: "話す(おしゃべりする)" }, { word: "tell", meaning: "伝える/教える" }, { word: "call", meaning: "呼ぶ/電話する" },
+        { word: "stop", meaning: "止める/止まる" }, { word: "meet", meaning: "会う" }, { word: "live", meaning: "住む/生きる" },
+        { word: "leave", meaning: "去る/出発する/残す" }, { word: "enjoy", meaning: "楽しむ" }, { word: "practice", meaning: "練習する" },
+        { word: "try", meaning: "試す/努力する" }, { word: "visit", meaning: "訪れる" }, { word: "wait", meaning: "待つ" },
+        { word: "teach", meaning: "教える" }, { word: "learn", meaning: "学ぶ" }, { word: "show", meaning: "見せる/案内する" },
+        { word: "give", meaning: "与える" }, { word: "find", meaning: "見つける" }, { word: "say", meaning: "言う" },
+        { word: "ask", meaning: "尋ねる/頼む" }, { word: "answer", meaning: "答える" }, { word: "love", meaning: "愛する/大好き" },
+
+        // 名詞 (学校・教育)
+        { word: "school", meaning: "学校" }, { word: "student", meaning: "学生/生徒" }, { word: "teacher", meaning: "先生" },
+        { word: "classmate", meaning: "同級生" }, { word: "class", meaning: "授業/クラス" }, { word: "subject", meaning: "教科" },
+        { word: "English", meaning: "英語" }, { word: "Japanese", meaning: "日本語/国語" }, { word: "math", meaning: "数学" },
+        { word: "science", meaning: "理科" }, { word: "history", meaning: "歴史" }, { word: "music", meaning: "音楽" },
+        { word: "art", meaning: "美術" }, { word: "notebook", meaning: "ノート" }, { word: "textbook", meaning: "教科書" },
+        { word: "dictionary", meaning: "辞書" }, { word: "pen", meaning: "ペン" }, { word: "pencil", meaning: "鉛筆" },
+        { word: "eraser", meaning: "消しゴム" }, { word: "ruler", meaning: "定規" }, { word: "desk", meaning: "机" },
+        { word: "chair", meaning: "椅子" }, { word: "computer", meaning: "コンピューター" }, { word: "library", meaning: "図書館" },
+        { word: "gym", meaning: "体育館" }, { word: "club", meaning: "クラブ/部活" }, { word: "uniform", meaning: "制服" },
+        { word: "test", meaning: "テスト" }, { word: "homework", meaning: "宿題" }, { word: "question", meaning: "質問/問題" },
+
+        // 名詞 (食べ物・飲み物)
+        { word: "food", meaning: "食べ物" }, { word: "water", meaning: "水" }, { word: "milk", meaning: "牛乳" },
+        { word: "tea", meaning: "お茶" }, { word: "coffee", meaning: "コーヒー" }, { word: "juice", meaning: "ジュース" },
+        { word: "bread", meaning: "パン" }, { word: "rice", meaning: "米/ご飯" }, { word: "meat", meaning: "肉" },
+        { word: "fish", meaning: "魚" }, { word: "vegetable", meaning: "野菜" }, { word: "fruit", meaning: "果物" },
+        { word: "apple", meaning: "りんご" }, { word: "banana", meaning: "バナナ" }, { word: "orange", meaning: "オレンジ" },
+        { word: "strawberry", meaning: "いちご" }, { word: "peach", meaning: "桃" }, { word: "grape", meaning: "ぶどう" },
+        { word: "tomato", meaning: "トマト" }, { word: "potato", meaning: "じゃがいも" }, { word: "egg", meaning: "卵" },
+        { word: "cheese", meaning: "チーズ" }, { word: "cake", meaning: "ケーキ" }, { word: "chocolate", meaning: "チョコレート" },
+        { word: "ice cream", meaning: "アイスクリーム" }, { word: "breakfast", meaning: "朝食" }, { word: "lunch", meaning: "昼食" },
+        { word: "dinner", meaning: "夕食" }, { word: "meal", meaning: "食事" },
+
+        // 名詞 (動物)
+        { word: "animal", meaning: "動物" }, { word: "dog", meaning: "犬" }, { word: "cat", meaning: "猫" },
+        { word: "bird", meaning: "鳥" }, { word: "rabbit", meaning: "うさぎ" }, { word: "mouse", meaning: "ねずみ" },
+        { word: "cow", meaning: "牛" }, { word: "pig", meaning: "豚" }, { word: "horse", meaning: "馬" },
+        { word: "sheep", meaning: "羊" }, { word: "monkey", meaning: "猿" }, { word: "bear", meaning: "熊" },
+        { word: "elephant", meaning: "象" }, { word: "tiger", meaning: "トラ" }, { word: "lion", meaning: "ライオン" },
+        { word: "panda", meaning: "パンダ" }, { word: "pet", meaning: "ペット" },
+
+        // 名詞 (体・人)
+        { word: "body", meaning: "体" }, { word: "head", meaning: "頭" }, { word: "hair", meaning: "髪" },
+        { word: "face", meaning: "顔" }, { word: "eye", meaning: "目" }, { word: "ear", meaning: "耳" },
+        { word: "nose", meaning: "鼻" }, { word: "mouth", meaning: "口" }, { word: "tooth", meaning: "歯(単数)" },
+        { word: "teeth", meaning: "歯(複数)" }, { word: "neck", meaning: "首" }, { word: "shoulder", meaning: "肩" },
+        { word: "arm", meaning: "腕" }, { word: "hand", meaning: "手" }, { word: "finger", meaning: "指" },
+        { word: "leg", meaning: "脚" }, { word: "foot", meaning: "足(単数)" }, { word: "feet", meaning: "足(複数)" },
+        { word: "heart", meaning: "心/心臓" }, { word: "back", meaning: "背中/後ろ" },
+        { word: "people", meaning: "人々" }, { word: "person", meaning: "人" }, { word: "man", meaning: "男性" },
+        { word: "woman", meaning: "女性" }, { word: "boy", meaning: "男の子" }, { word: "girl", meaning: "女の子" },
+        { word: "child", meaning: "子供(単数)" }, { word: "children", meaning: "子供(複数)" }, { word: "baby", meaning: "赤ちゃん" },
+        { word: "friend", meaning: "友達" }, { word: "king", meaning: "王" }, { word: "queen", meaning: "女王" },
+
+        // 名詞 (家族)
+        { word: "family", meaning: "家族" }, { word: "father", meaning: "父" }, { word: "mother", meaning: "母" },
+        { word: "parents", meaning: "両親" }, { word: "brother", meaning: "兄/弟" }, { word: "sister", meaning: "姉/妹" },
+        { word: "grandfather", meaning: "祖父" }, { word: "grandmother", meaning: "祖母" }, { word: "uncle", meaning: "おじ" },
+        { word: "aunt", meaning: "おば" }, { word: "cousin", meaning: "いとこ" }, { word: "son", meaning: "息子" },
+        { word: "daughter", meaning: "娘" },
+
+        // 名詞 (自然・世界)
+        { word: "world", meaning: "世界" }, { word: "earth", meaning: "地球" }, { word: "sun", meaning: "太陽" },
+        { word: "moon", meaning: "月(天体)" }, { word: "star", meaning: "星" }, { word: "sky", meaning: "空" },
+        { word: "cloud", meaning: "雲" }, { word: "rain", meaning: "雨" }, { word: "snow", meaning: "雪" },
+        { word: "wind", meaning: "風" }, { word: "fire", meaning: "火" }, { word: "sea", meaning: "海" },
+        { word: "ocean", meaning: "大洋" }, { word: "river", meaning: "川" }, { word: "lake", meaning: "湖" },
+        { word: "mountain", meaning: "山" }, { word: "hill", meaning: "丘" }, { word: "tree", meaning: "木" },
+        { word: "flower", meaning: "花" }, { word: "grass", meaning: "草" }, { word: "wood", meaning: "木材/森" },
+        { word: "stone", meaning: "石" }, { word: "rock", meaning: "岩" },
+
+        // 名詞 (街・建物・家)
+        { word: "city", meaning: "市/都市" }, { word: "town", meaning: "町" }, { word: "village", meaning: "村" },
+        { word: "street", meaning: "通り" }, { word: "park", meaning: "公園" }, { word: "garden", meaning: "庭" },
+        { word: "hospital", meaning: "病院" }, { word: "station", meaning: "駅" }, { word: "store", meaning: "店" },
+        { word: "shop", meaning: "店" }, { word: "bank", meaning: "銀行" }, { word: "restaurant", meaning: "レストラン" },
+        { word: "house", meaning: "家" }, { word: "home", meaning: "家庭/家へ" }, { word: "room", meaning: "部屋" },
+        { word: "living room", meaning: "居間" }, { word: "bedroom", meaning: "寝室" }, { word: "bathroom", meaning: "浴室/トイレ" },
+        { word: "kitchen", meaning: "台所" }, { word: "door", meaning: "ドア" }, { word: "window", meaning: "窓" },
+        { word: "wall", meaning: "壁" }, { word: "floor", meaning: "床/階" }, { word: "roof", meaning: "屋根" },
+        { word: "bed", meaning: "ベッド" }, { word: "table", meaning: "テーブル" }, { word: "box", meaning: "箱" },
+        { word: "picture", meaning: "写真/絵" }, { word: "clock", meaning: "時計(置き・掛け)" },
+
+        // 名詞 (服・身の回り)
+        { word: "clothes", meaning: "服" }, { word: "shirt", meaning: "シャツ" }, { word: "t-shirt", meaning: "Tシャツ" },
+        { word: "coat", meaning: "コート" }, { word: "jacket", meaning: "ジャケット" }, { word: "sweater", meaning: "セーター" },
+        { word: "skirt", meaning: "スカート" }, { word: "dress", meaning: "ドレス/ワンピース" }, { word: "pants", meaning: "ズボン" },
+        { word: "socks", meaning: "靴下" }, { word: "shoes", meaning: "靴" }, { word: "hat", meaning: "帽子(つばあり)" },
+        { word: "cap", meaning: "帽子(つばなし)" }, { word: "bag", meaning: "かばん" }, { word: "umbrella", meaning: "傘" },
+        { word: "watch", meaning: "腕時計" }, { word: "money", meaning: "お金" },
+
+        // 名詞 (乗り物)
+        { word: "car", meaning: "車" }, { word: "bus", meaning: "バス" }, { word: "train", meaning: "電車" },
+        { word: "subway", meaning: "地下鉄" }, { word: "bike", meaning: "自転車" }, { word: "bicycle", meaning: "自転車" },
+        { word: "taxi", meaning: "タクシー" }, { word: "ship", meaning: "船" }, { word: "boat", meaning: "ボート" },
+        { word: "airplane", meaning: "飛行機" }, { word: "plane", meaning: "飛行機" },
+
+        // 名詞 (時間・季節)
+        { word: "time", meaning: "時間" }, { word: "hour", meaning: "時間(1時間)" }, { word: "minute", meaning: "分" },
+        { word: "second", meaning: "秒/2番目" }, { word: "day", meaning: "日/1日" }, { word: "week", meaning: "週" },
+        { word: "month", meaning: "月(暦)" }, { word: "year", meaning: "年" }, { word: "morning", meaning: "朝/午前" },
+        { word: "afternoon", meaning: "午後" }, { word: "evening", meaning: "夕方/晩" }, { word: "night", meaning: "夜" },
+        { word: "today", meaning: "今日" }, { word: "tomorrow", meaning: "明日" }, { word: "yesterday", meaning: "昨日" },
+        { word: "spring", meaning: "春" }, { word: "summer", meaning: "夏" }, { word: "fall", meaning: "秋" },
+        { word: "autumn", meaning: "秋" }, { word: "winter", meaning: "冬" }, { word: "weekend", meaning: "週末" },
+        { word: "holiday", meaning: "休日" },
+
+        // 形容詞 (色)
+        { word: "color", meaning: "色" }, { word: "red", meaning: "赤" }, { word: "blue", meaning: "青" },
+        { word: "green", meaning: "緑" }, { word: "yellow", meaning: "黄色" }, { word: "black", meaning: "黒" },
+        { word: "white", meaning: "白" }, { word: "brown", meaning: "茶色" }, { word: "pink", meaning: "ピンク" },
+        { word: "orange", meaning: "オレンジ" }, { word: "purple", meaning: "紫" }, { word: "gray", meaning: "灰色" },
+        { word: "gold", meaning: "金" }, { word: "silver", meaning: "銀" },
+
+        // 形容詞 (状態・感情)
+        { word: "happy", meaning: "幸せな" }, { word: "sad", meaning: "悲しい" }, { word: "angry", meaning: "怒った" },
+        { word: "tired", meaning: "疲れた" }, { word: "hungry", meaning: "空腹の" }, { word: "thirsty", meaning: "のどが渇いた" },
+        { word: "sleepy", meaning: "眠い" }, { word: "sick", meaning: "病気の" }, { word: "well", meaning: "健康な/上手に" },
+        { word: "fine", meaning: "元気な/素晴らしい" }, { word: "busy", meaning: "忙しい" }, { word: "free", meaning: "暇な/自由な" },
+
+        // 形容詞 (性質・サイズ)
+        { word: "big", meaning: "大きい" }, { word: "small", meaning: "小さい" }, { word: "large", meaning: "大きい" },
+        { word: "little", meaning: "小さい/少しの" }, { word: "long", meaning: "長い" }, { word: "short", meaning: "短い/背が低い" },
+        { word: "tall", meaning: "背が高い" }, { word: "high", meaning: "高い" }, { word: "low", meaning: "低い" },
+        { word: "heavy", meaning: "重い" }, { word: "light", meaning: "軽い/明るい" }, { word: "strong", meaning: "強い" },
+        { word: "weak", meaning: "弱い" }, { word: "fast", meaning: "速い" }, { word: "slow", meaning: "遅い" },
+        { word: "hot", meaning: "暑い/熱い" }, { word: "cold", meaning: "寒い/冷たい" }, { word: "warm", meaning: "暖かい" },
+        { word: "cool", meaning: "涼しい/かっこいい" }, { word: "new", meaning: "新しい" }, { word: "old", meaning: "古い" },
+        { word: "young", meaning: "若い" }, { word: "good", meaning: "良い" }, { word: "bad", meaning: "悪い" },
+        { word: "nice", meaning: "素敵な/良い" }, { word: "beautiful", meaning: "美しい" }, { word: "cute", meaning: "かわいい" },
+        { word: "great", meaning: "偉大な/素晴らしい" }, { word: "wonderful", meaning: "素晴らしい" }, { word: "clean", meaning: "きれいな/清潔な" },
+        { word: "dirty", meaning: "汚い" }, { word: "easy", meaning: "簡単な" }, { word: "hard", meaning: "難しい/一生懸命に" },
+        { word: "difficult", meaning: "難しい" }, { word: "interesting", meaning: "面白い/興味深い" }, { word: "boring", meaning: "退屈な" },
+        { word: "rich", meaning: "裕福な" }, { word: "poor", meaning: "貧しい" }, { word: "right", meaning: "正しい/右" },
+        { word: "wrong", meaning: "間違った" }, { word: "glad", meaning: "うれしい" }, { word: "famous", meaning: "有名な" },
+
+        // 数量・冠詞
+        { word: "many", meaning: "多くの(数)" }, { word: "much", meaning: "多くの(量)" }, { word: "some", meaning: "いくつかの" },
+        { word: "any", meaning: "いくつか(疑問・否定)" }, { word: "all", meaning: "すべての" }, { word: "both", meaning: "両方の" },
+        { word: "few", meaning: "ほとんどない(数)" }, { word: "a", meaning: "1つの" }, { word: "an", meaning: "1つの(母音の前)" },
+        { word: "the", meaning: "その" },
+
+        // 副詞
+        { word: "very", meaning: "とても" }, { word: "too", meaning: "〜すぎる/〜もまた" }, { word: "so", meaning: "とても/だから" },
+        { word: "really", meaning: "本当に" }, { word: "always", meaning: "いつも" }, { word: "usually", meaning: "たいてい" },
+        { word: "often", meaning: "よく" }, { word: "sometimes", meaning: "ときどき" }, { word: "never", meaning: "決して〜ない" },
+        { word: "early", meaning: "早く/早い" }, { word: "late", meaning: "遅く/遅い" }, { word: "now", meaning: "今" },
+        { word: "then", meaning: "その時/それから" }, { word: "again", meaning: "再び" }, { word: "together", meaning: "一緒に" },
+        { word: "here", meaning: "ここに" }, { word: "there", meaning: "そこに" },
+
+        // 前置詞
+        { word: "in", meaning: "〜の中に" }, { word: "on", meaning: "〜の上に(接触)" }, { word: "at", meaning: "〜に/〜で(地点・時間)" },
+        { word: "to", meaning: "〜へ" }, { word: "for", meaning: "〜のために/〜の間" }, { word: "from", meaning: "〜から" },
+        { word: "of", meaning: "〜の" }, { word: "with", meaning: "〜と一緒に/〜を使って" }, { word: "without", meaning: "〜なしで" },
+        { word: "by", meaning: "〜のそばに/〜によって" }, { word: "about", meaning: "〜について/約" }, { word: "under", meaning: "〜の下に" },
+        { word: "over", meaning: "〜を越えて/上に" }, { word: "up", meaning: "上へ" }, { word: "down", meaning: "下へ" },
+        { word: "near", meaning: "〜の近くに" }, { word: "around", meaning: "〜の周りに/約" }, { word: "into", meaning: "〜の中へ" },
+        { word: "through", meaning: "〜を通って" }, { word: "between", meaning: "〜の間(2つ)に" }, { word: "before", meaning: "〜の前に" },
+        { word: "after", meaning: "〜の後に" }, { word: "during", meaning: "〜の間に(期間)" },
+
+        // 接続詞
+        { word: "and", meaning: "そして" }, { word: "but", meaning: "しかし" }, { word: "or", meaning: "または" },
+        { word: "because", meaning: "なぜなら" }, { word: "if", meaning: "もし〜なら" }, { word: "when", meaning: "〜する時(接続詞)" },
+        { word: "that", meaning: "〜ということ" },
+
+        // 数字 (1〜20, 10刻み, 100, 1000)
+        { word: "zero", meaning: "0" }, { word: "one", meaning: "1" }, { word: "two", meaning: "2" },
+        { word: "three", meaning: "3" }, { word: "four", meaning: "4" }, { word: "five", meaning: "5" },
+        { word: "six", meaning: "6" }, { word: "seven", meaning: "7" }, { word: "eight", meaning: "8" },
+        { word: "nine", meaning: "9" }, { word: "ten", meaning: "10" }, { word: "eleven", meaning: "11" },
+        { word: "twelve", meaning: "12" }, { word: "thirteen", meaning: "13" }, { word: "fourteen", meaning: "14" },
+        { word: "fifteen", meaning: "15" }, { word: "sixteen", meaning: "16" }, { word: "seventeen", meaning: "17" },
+        { word: "eighteen", meaning: "18" }, { word: "nineteen", meaning: "19" }, { word: "twenty", meaning: "20" },
+        { word: "thirty", meaning: "30" }, { word: "forty", meaning: "40" }, { word: "fifty", meaning: "50" },
+        { word: "sixty", meaning: "60" }, { word: "seventy", meaning: "70" }, { word: "eighty", meaning: "80" },
+        { word: "ninety", meaning: "90" }, { word: "hundred", meaning: "100" }, { word: "thousand", meaning: "1000" },
+
+        // 序数 (1st〜10th)
+        { word: "first", meaning: "1番目の" }, { word: "second", meaning: "2番目の/秒" }, { word: "third", meaning: "3番目の" },
+        { word: "fourth", meaning: "4番目の" }, { word: "fifth", meaning: "5番目の" }, { word: "sixth", meaning: "6番目の" },
+        { word: "seventh", meaning: "7番目の" }, { word: "eighth", meaning: "8番目の" }, { word: "ninth", meaning: "9番目の" },
+        { word: "tenth", meaning: "10番目の" },
+
+        // 曜日
+        { word: "Sunday", meaning: "日曜日" }, { word: "Monday", meaning: "月曜日" }, { word: "Tuesday", meaning: "火曜日" },
+        { word: "Wednesday", meaning: "水曜日" }, { word: "Thursday", meaning: "木曜日" }, { word: "Friday", meaning: "金曜日" },
+        { word: "Saturday", meaning: "土曜日" },
+
+        // 月
+        { word: "January", meaning: "1月" }, { word: "February", meaning: "2月" }, { word: "March", meaning: "3月" },
+        { word: "April", meaning: "4月" }, { word: "May", meaning: "5月" }, { word: "June", meaning: "6月" },
+        { word: "July", meaning: "7月" }, { word: "August", meaning: "8月" }, { word: "September", meaning: "9月" },
+        { word: "October", meaning: "10月" }, { word: "November", meaning: "11月" }, { word: "December", meaning: "12月" },
+
+        // 挨拶・日常表現
+        { word: "hello", meaning: "こんにちは" }, { word: "hi", meaning: "やあ" }, { word: "goodbye", meaning: "さようなら" },
+        { word: "bye", meaning: "じゃあね" }, { word: "yes", meaning: "はい" }, { word: "no", meaning: "いいえ" },
+        { word: "please", meaning: "お願いします/どうぞ" }, { word: "sorry", meaning: "ごめんなさい" }, { word: "excuse", meaning: "許す(Excuse meで)" },
+        { word: "thanks", meaning: "ありがとう" }, { word: "thank", meaning: "感謝する(Thank you)" }, { word: "welcome", meaning: "歓迎する/どういたしまして" },
+        { word: "OK", meaning: "わかった/大丈夫" }
+    ];
+
+    document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById('total-words-count').textContent = wordList.length;
+    });
+
+    let currentWordIndex = 0;
+    let score = 0;
+    let gameWords = [];
+    let currentWord = null;
+
+    const startUI = document.getElementById('start-ui');
+    const gameUI = document.getElementById('game-ui');
+    const wordDisplay = document.getElementById('word-display');
+    const meaningDisplay = document.getElementById('meaning-display');
+    const wordInput = document.getElementById('word-input');
+    const scoreDisplay = document.getElementById('score');
+    const remainingDisplay = document.getElementById('remaining');
+    const inputContainer = document.getElementById('input-container');
+    const countSelect = document.getElementById('question-count');
+
+    function startGame() {
+        let shuffled = [...wordList].sort(() => Math.random() - 0.5);
+        
+        const selectedCount = countSelect.value;
+        if (selectedCount === 'all') {
+            gameWords = shuffled;
+        } else {
+            gameWords = shuffled.slice(0, parseInt(selectedCount, 10));
+        }
+
+        currentWordIndex = 0;
+        score = 0;
+        scoreDisplay.textContent = score;
+        
+        startUI.classList.add('hidden');
+        gameUI.classList.remove('hidden');
+        
+        nextWord();
+        wordInput.focus();
+    }
+
+    function nextWord() {
+        if (currentWordIndex >= gameWords.length) {
+            endGame();
+            return;
+        }
+
+        currentWord = gameWords[currentWordIndex];
+        wordDisplay.textContent = currentWord.word;
+        meaningDisplay.textContent = "";
+        wordInput.value = "";
+        inputContainer.classList.remove('correct', 'error');
+        remainingDisplay.textContent = gameWords.length - currentWordIndex;
+        
+        wordDisplay.classList.remove('animate-pop');
+        void wordDisplay.offsetWidth;
+        wordDisplay.classList.add('animate-pop');
+    }
+
+    function endGame() {
+        gameUI.classList.add('hidden');
+        startUI.classList.remove('hidden');
+        alert(`ゲーム終了！\n正解数: ${score} / ${gameWords.length}`);
+    }
+
+    function resetGame() {
+        if(confirm("途中でやめてスタート画面に戻りますか？")) {
+            gameUI.classList.add('hidden');
+            startUI.classList.remove('hidden');
+        }
+    }
+
+    wordInput.addEventListener('input', (e) => {
+        const typedText = e.target.value;
+        
+        if (typedText.toLowerCase() === currentWord.word.toLowerCase()) {
+            score++;
+            scoreDisplay.textContent = score;
+            inputContainer.classList.add('correct');
+            meaningDisplay.textContent = currentWord.meaning;
+            
+            setTimeout(() => {
+                currentWordIndex++;
+                nextWord();
+                wordInput.focus();
+            }, 1000);
+        } else if (currentWord.word.toLowerCase().startsWith(typedText.toLowerCase())) {
+            inputContainer.classList.remove('error');
+        } else {
+            inputContainer.classList.add('error');
+        }
+    });
+</script>
+
+</body>
+</html>
